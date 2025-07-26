@@ -24,7 +24,7 @@ jobs:
         SOURCE_DIR: ./
         DEST_DIR: code/latest/
 
-    - name: Trigger training in SageMaker (Frankfurt)
+    - name: Trigger training in SageMaker (ml.m5.large + Spot)
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -60,6 +60,7 @@ jobs:
             }
           ]' \
           --output-data-config "{\"S3OutputPath\":\"s3://skin-lesion-ham10000-euc1/output\"}" \
-          --resource-config '{"InstanceType":"ml.t3.medium","InstanceCount":1,"VolumeSizeInGB":20}' \
+          --resource-config '{"InstanceType":"ml.m5.large","InstanceCount":1,"VolumeSizeInGB":20}' \
           --stopping-condition '{"MaxRuntimeInSeconds":1800}' \
+          --enable-managed-spot-training \
           --region eu-central-1
