@@ -17,7 +17,7 @@ jobs:
       with:
         args: --delete
       env:
-        AWS_S3_BUCKET: skin-lesion-frankfurt
+        AWS_S3_BUCKET: skin-lesion-ham10000-euc1
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: eu-central-1
@@ -43,7 +43,7 @@ jobs:
               "DataSource":{
                 "S3DataSource":{
                   "S3DataType":"S3Prefix",
-                  "S3Uri":"s3://skin-lesion-frankfurt/",
+                  "S3Uri":"s3://skin-lesion-ham10000-euc1/HAM10000_sorted/",
                   "S3DataDistributionType":"FullyReplicated"
                 }
               }
@@ -53,13 +53,13 @@ jobs:
               "DataSource":{
                 "S3DataSource":{
                   "S3DataType":"S3Prefix",
-                  "S3Uri":"s3://skin-lesion-frankfurt/code/latest/",
+                  "S3Uri":"s3://skin-lesion-ham10000-euc1/code/latest/",
                   "S3DataDistributionType":"FullyReplicated"
                 }
               }
             }
           ]' \
-          --output-data-config "{\"S3OutputPath\":\"s3://skin-lesion-frankfurt/output\"}" \
+          --output-data-config "{\"S3OutputPath\":\"s3://skin-lesion-ham10000-euc1/output\"}" \
           --resource-config '{"InstanceType":"ml.t3.medium","InstanceCount":1,"VolumeSizeInGB":20}' \
           --stopping-condition '{"MaxRuntimeInSeconds":1800}' \
           --region eu-central-1
