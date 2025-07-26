@@ -63,4 +63,5 @@ jobs:
           --resource-config '{"InstanceType":"ml.m5.large","InstanceCount":1,"VolumeSizeInGB":20}' \
           --stopping-condition '{"MaxRuntimeInSeconds":1800}' \
           --enable-managed-spot-training \
+          --max-wait-time-in-seconds 3600 \
           --region eu-central-1
