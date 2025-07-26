@@ -61,7 +61,6 @@ jobs:
           ]' \
           --output-data-config "{\"S3OutputPath\":\"s3://skin-lesion-ham10000-euc1/output\"}" \
           --resource-config '{"InstanceType":"ml.m5.large","InstanceCount":1,"VolumeSizeInGB":20}' \
-          --stopping-condition '{"MaxRuntimeInSeconds":1800}' \
           --enable-managed-spot-training \
-          --max-wait-time-in-seconds 3600 \
+          --stopping-condition '{"MaxRuntimeInSeconds":1800,"MaxWaitTimeInSeconds":3600}' \
           --region eu-central-1
