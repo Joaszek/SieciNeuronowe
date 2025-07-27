@@ -28,6 +28,11 @@ jobs:
 
     - name: Trigger training in SageMaker
       run: |
+        echo "GitHub Actor: $GITHUB_ACTOR"
+        echo "GitHub Event: $GITHUB_EVENT_NAME"
+        echo "GitHub Repo: $GITHUB_REPOSITORY"
+        echo "GitHub Ref: $GITHUB_REF"
+
         echo "AWS_ACCESS_KEY_ID: [$AWS_ACCESS_KEY_ID]"
         echo "Length: ${#AWS_ACCESS_KEY_ID}"
 
