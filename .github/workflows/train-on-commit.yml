@@ -24,12 +24,7 @@ jobs:
         SOURCE_DIR: ./
         DEST_DIR: code/latest/
 
-    - name: Trigger training in SageMaker (ml.m5.large + Spot)
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        SAGEMAKER_ROLE_ARN: ${{ secrets.SAGEMAKER_ROLE_ARN }}
-        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+    - name: Trigger training in SageMaker
       run: |
         JOB_NAME=cnn-ham-$(date +%s)
 
@@ -71,7 +66,6 @@ jobs:
           ]' \
           --output-data-config "{\"S3OutputPath\":\"s3://skin-lesion-ham10000-euc1/output\"}" \
           --resource-config '{"InstanceType":"ml.m5.large","InstanceCount":1,"VolumeSizeInGB":20}' \
-          --container-arguments '["python", "/opt/ml/input/data/code/train.py"]' \
           --enable-managed-spot-training \
           --stopping-condition '{"MaxRuntimeInSeconds":1800,"MaxWaitTimeInSeconds":3600}' \
           --region eu-central-1
