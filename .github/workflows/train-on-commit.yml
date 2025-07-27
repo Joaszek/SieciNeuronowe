@@ -51,7 +51,6 @@ jobs:
           --training-job-name $JOB_NAME \
           --algorithm-specification TrainingImage=763104351884.dkr.ecr.eu-central-1.amazonaws.com/tensorflow-training:2.13-cpu-py310,TrainingInputMode=File \
           --role-arn "$SAGEMAKER_ROLE_ARN" \
-          --hyperparameters '{"sagemaker_program": "train"}' \
           --input-data-config '[
             {
               "ChannelName": "training",
