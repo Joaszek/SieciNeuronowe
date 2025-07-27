@@ -35,7 +35,7 @@ jobs:
 
         aws sagemaker create-training-job \
           --training-job-name $JOB_NAME \
-          --algorithm-specification TrainingImage=763104351884.dkr.ecr.eu-central-1.amazonaws.com/tensorflow-training:2.13-cpu-py310,TrainingInputMode=File,MetricDefinitions=[] \
+          --algorithm-specification TrainingImage=763104351884.dkr.ecr.eu-central-1.amazonaws.com/tensorflow-training:2.13-cpu-py310,TrainingInputMode=File \
           --role-arn $SAGEMAKER_ROLE_ARN \
           --input-data-config '[
             {
@@ -71,7 +71,7 @@ jobs:
           ]' \
           --output-data-config "{\"S3OutputPath\":\"s3://skin-lesion-ham10000-euc1/output\"}" \
           --resource-config '{"InstanceType":"ml.m5.large","InstanceCount":1,"VolumeSizeInGB":20}' \
-          --hyperparameters '{"sagemaker_program":"train.py"}' \
+          --container-arguments '["python", "/opt/ml/input/data/code/train.py"]' \
           --enable-managed-spot-training \
           --stopping-condition '{"MaxRuntimeInSeconds":1800,"MaxWaitTimeInSeconds":3600}' \
           --region eu-central-1
