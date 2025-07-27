@@ -20,10 +20,6 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@v3
 
-    - name: Rename train.py to train (required by SageMaker Script Mode)
-      run: mv train.py train
-    - name: Make train executable
-      run: chmod +x train
     - name: List files and permissions before upload
       run: |
         echo "Listing files and permissions:"
