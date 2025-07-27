@@ -24,6 +24,10 @@ jobs:
       run: mv train.py train
     - name: Make train executable
       run: chmod +x train
+    - name: List files and permissions before upload
+      run: |
+        echo "Listing files and permissions:"
+        ls -lR
     - name: Upload code to S3
       uses: jakejarvis/s3-sync-action@master
       with:
