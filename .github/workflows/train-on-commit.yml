@@ -28,8 +28,10 @@ jobs:
 
     - name: Trigger training in SageMaker
       run: |
-        echo "ROLE ARN: [$SAGEMAKER_ROLE_ARN]"
-        echo "Length: ${#SAGEMAKER_ROLE_ARN}"
+        echo "==== ENV DEBUG ===="
+        printenv | grep -E 'AWS|SAGEMAKER'
+        echo "==================="
+
 
         JOB_NAME=cnn-ham-$(date +%s)
 
