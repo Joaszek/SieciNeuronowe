@@ -28,10 +28,17 @@ jobs:
 
     - name: Trigger training in SageMaker
       run: |
-        echo "==== ENV DEBUG ===="
-        printenv | grep -E 'AWS|SAGEMAKER'
-        echo "==================="
+        echo "AWS_ACCESS_KEY_ID: [$AWS_ACCESS_KEY_ID]"
+        echo "Length: ${#AWS_ACCESS_KEY_ID}"
 
+        echo "AWS_SECRET_ACCESS_KEY: [$AWS_SECRET_ACCESS_KEY]"
+        echo "Length: ${#AWS_SECRET_ACCESS_KEY}"
+
+        echo "AWS_ACCOUNT_ID: [$AWS_ACCOUNT_ID]"
+        echo "Length: ${#AWS_ACCOUNT_ID}"
+
+        echo "ROLE ARN: [$SAGEMAKER_ROLE_ARN]"
+        echo "Length: ${#SAGEMAKER_ROLE_ARN}"
 
         JOB_NAME=cnn-ham-$(date +%s)
 
