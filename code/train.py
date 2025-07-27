@@ -3,7 +3,7 @@ import tensorflow as tf
 from model import create_model
 from utils import load_data
 
-train_path = '/opt/ml/input/data/training/train'
+train_path = '/opt/ml/input/data/training'
 output_path = '/opt/ml/model'
 
 print(">> Zawartość katalogu treningowego:")
