@@ -22,7 +22,8 @@ jobs:
 
     - name: Rename train.py to train (required by SageMaker Script Mode)
       run: mv train.py train
-
+    - name: Make train executable
+      run: chmod +x train
     - name: Upload code to S3
       uses: jakejarvis/s3-sync-action@master
       with:
