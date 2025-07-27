@@ -71,7 +71,7 @@ jobs:
           ]' \
           --output-data-config "{\"S3OutputPath\":\"s3://skin-lesion-ham10000-euc1/output\"}" \
           --resource-config '{"InstanceType":"ml.m5.large","InstanceCount":1,"VolumeSizeInGB":20}' \
-          --environment '{"SAGEMAKER_PROGRAM":"train.py"}' \
+          --entry-point train.py \
           --enable-managed-spot-training \
           --stopping-condition '{"MaxRuntimeInSeconds":1800,"MaxWaitTimeInSeconds":3600}' \
           --region eu-central-1
