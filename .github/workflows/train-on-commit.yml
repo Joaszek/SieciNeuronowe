@@ -39,11 +39,21 @@ jobs:
           --role-arn $SAGEMAKER_ROLE_ARN \
           --input-data-config '[
             {
-              "ChannelName":"training",
+              "ChannelName":"train",
               "DataSource":{
                 "S3DataSource":{
                   "S3DataType":"S3Prefix",
-                  "S3Uri":"s3://skin-lesion-ham10000-euc1/HAM10000_sorted/",
+                  "S3Uri":"s3://skin-lesion-ham10000-euc1/HAM10000_sorted/train/",
+                  "S3DataDistributionType":"FullyReplicated"
+                }
+              }
+            },
+            {
+              "ChannelName":"val",
+              "DataSource":{
+                "S3DataSource":{
+                  "S3DataType":"S3Prefix",
+                  "S3Uri":"s3://skin-lesion-ham10000-euc1/HAM10000_sorted/val/",
                   "S3DataDistributionType":"FullyReplicated"
                 }
               }
@@ -61,6 +71,7 @@ jobs:
           ]' \
           --output-data-config "{\"S3OutputPath\":\"s3://skin-lesion-ham10000-euc1/output\"}" \
           --resource-config '{"InstanceType":"ml.m5.large","InstanceCount":1,"VolumeSizeInGB":20}' \
+          --hyperparameters '{"sagemaker_program": "train.py"}' \
           --enable-managed-spot-training \
           --stopping-condition '{"MaxRuntimeInSeconds":1800,"MaxWaitTimeInSeconds":3600}' \
           --region eu-central-1
