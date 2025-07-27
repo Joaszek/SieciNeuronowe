@@ -8,40 +8,35 @@ jobs:
   train:
     runs-on: ubuntu-latest
 
+    env:
+      AWS_S3_BUCKET: skin-lesion-ham10000-euc1
+      AWS_REGION: eu-central-1
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      SAGEMAKER_ROLE_ARN: ${{ secrets.SAGEMAKER_ROLE_ARN }}
+
     steps:
     - name: Checkout repo
       uses: actions/checkout@v3
 
-    - name: Upload code to S3 (Frankfurt)
+    - name: Rename train.py to train (required by SageMaker Script Mode)
+      run: mv train.py train
+
+    - name: Upload code to S3
       uses: jakejarvis/s3-sync-action@master
       with:
         args: --delete
       env:
-        AWS_S3_BUCKET: skin-lesion-ham10000-euc1
-        AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
-        AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
-        AWS_ACCOUNT_ID: ${{secrets.AWS_ACCOUNT_ID}}
-        SAGEMAKER_ROLE_ARN: ${{secrets.SAGEMAKER_ROLE_ARN}}
-        AWS_REGION: eu-central-1
+        AWS_S3_BUCKET: ${{ env.AWS_S3_BUCKET }}
+        AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{ env.AWS_REGION }}
         SOURCE_DIR: ./
         DEST_DIR: code/latest/
 
     - name: Trigger training in SageMaker
       run: |
-        echo "GitHub Actor: $GITHUB_ACTOR"
-        echo "GitHub Event: $GITHUB_EVENT_NAME"
-        echo "GitHub Repo: $GITHUB_REPOSITORY"
-        echo "GitHub Ref: $GITHUB_REF"
-
-        echo "AWS_ACCESS_KEY_ID: [$AWS_ACCESS_KEY_ID]"
-        echo "Length: ${#AWS_ACCESS_KEY_ID}"
-
-        echo "AWS_SECRET_ACCESS_KEY: [$AWS_SECRET_ACCESS_KEY]"
-        echo "Length: ${#AWS_SECRET_ACCESS_KEY}"
-
-        echo "AWS_ACCOUNT_ID: [$AWS_ACCOUNT_ID]"
-        echo "Length: ${#AWS_ACCOUNT_ID}"
-
         echo "ROLE ARN: [$SAGEMAKER_ROLE_ARN]"
         echo "Length: ${#SAGEMAKER_ROLE_ARN}"
 
@@ -87,4 +82,4 @@ jobs:
           --resource-config '{"InstanceType":"ml.m5.large","InstanceCount":1,"VolumeSizeInGB":20}' \
           --enable-managed-spot-training \
           --stopping-condition '{"MaxRuntimeInSeconds":1800,"MaxWaitTimeInSeconds":3600}' \
-          --region eu-central-1
+          --region $AWS_REGION
