@@ -8,7 +8,7 @@ role = 'arn:aws:iam::564083281396:role/AmazonSageMakerExecutionRoleForTraining'
 
 estimator = TensorFlow(
     entry_point='train.py',
-    source_dir='code',
+    source_dir='basic_model/code',
     role=role,
     instance_type='ml.m5.large',
     instance_count=1,
@@ -23,5 +23,6 @@ estimator = TensorFlow(
 )
 
 estimator.fit({
-    'training': 's3://skin-lesion-ham10000-euc1/HAM10000_sorted/train/'
+    'train': 's3://skin-lesion-ham10000-euc1/HAM10000_sorted/train/',
+    'val': 's3://skin-lesion-ham10000-euc1/HAM10000_sorted/val/'
 })
