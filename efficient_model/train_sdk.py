@@ -1,13 +1,15 @@
 from sagemaker.tensorflow import TensorFlow
 import sagemaker
 import boto3
+import sys
+sys.stdout.reconfigure(line_buffering=True)
 
 session = boto3.Session(region_name='eu-central-1')
 sagemaker_session = sagemaker.Session(boto_session=session)
 role = 'arn:aws:iam::564083281396:role/AmazonSageMakerExecutionRoleForTraining'
 
 estimator = TensorFlow(
-    entry_point='train.py',
+    entry_point='train_changed.py',
     source_dir='efficient_model/code',
     role=role,
     instance_type='ml.m5.large',
@@ -16,7 +18,13 @@ estimator = TensorFlow(
     py_version='py310',
     hyperparameters={
         'EPOCHS': 10,
-        'BATCH_SIZE': 32
+        'BATCH_SIZE': 32,
+        'K_FOLDS': 5,
+        'USE_AUG': 1,
+        'USE_MIXUP': 0,
+        'MIXUP_PROB': 0.2,
+        'MIXUP_MIN_LAM': 0.3,
+        'MIXUP_MAX_LAM': 0.7,
     },
     output_path='s3://skin-lesion-ham10000-euc1/output',
     base_job_name='efficient-ham',

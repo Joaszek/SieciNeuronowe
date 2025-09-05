@@ -2,23 +2,13 @@ import tensorflow as tf
 import os
 import numpy as np
 
-
 def make_dataset(file_list, class_names, labels=None, img_size=(224, 224), batch_size=32, shuffle=True):
-    """
-    Tworzy tf.data.Dataset dla obrazów.
-
-    file_list : list[str]
-        Lista ścieżek do obrazów.
-    class_names : list[str]
-        Nazwy klas (np. ['bcc','bkl','mel','nv']).
-    labels : list[int] lub None
-        Jeśli podane → używane bezpośrednio.
-        Jeśli None → etykiety wyciągane z folderu w ścieżce pliku.
-    """
     num_classes = len(class_names)
 
+    if file_list is None or len(file_list) == 0:
+        raise ValueError("make_dataset: pusta lista plików.")
+
     if labels is None:
-        # etykiety z katalogów
         labels = []
         for f in file_list:
             class_name = os.path.basename(os.path.dirname(f))
@@ -30,10 +20,11 @@ def make_dataset(file_list, class_names, labels=None, img_size=(224, 224), batch
     ds = tf.data.Dataset.from_tensor_slices((file_list, labels))
 
     def process_path(path, label):
-        img = tf.io.read_file(path)
-        img = tf.image.decode_jpeg(img, channels=3)
-        img = tf.image.resize(img, img_size)
-        img = img / 255.0
+        img_bytes = tf.io.read_file(path)
+        # decode_image obsłuży jpg/jpeg/png i ustawi channels=3
+        img = tf.io.decode_image(img_bytes, channels=3, expand_animations=False)
+        img = tf.image.resize(img, img_size, antialias=True)
+        img = tf.cast(img, tf.float32) / 255.0
         return img, tf.one_hot(label, depth=num_classes)
 
     if shuffle:
