@@ -2,19 +2,66 @@ import os
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.applications.efficientnet import preprocess_input
+from sklearn.metrics import f1_score
+
 
 def _get_env(name, default=None):
+    """
+    Retrieve environment variable, preferring SageMaker hyperparameters (SM_HP_*).
+
+    Parameters
+    ----------
+    name : str
+        Name of the environment variable (without SM_HP_ prefix).
+    default : any, optional
+        Default value if the variable is not set (default is None).
+
+    Returns
+    -------
+    str or any
+        Environment variable value, or default if not found.
+    """
     # Najpierw sprawdź hyperparam z SageMaker (SM_HP_*)
     v = os.environ.get(f"SM_HP_{name}", os.environ.get(name, None))
     return default if v is None else v
 
 def _get_bool(name, default=True):
+    """
+    Retrieve a boolean environment variable.
+
+    Parameters
+    ----------
+    name : str
+        Name of the environment variable.
+    default : bool, optional
+        Default value if variable is not set (default True).
+
+    Returns
+    -------
+    bool
+        Boolean value of the environment variable.
+    """
     v = _get_env(name, None)
     if v is None:
         return bool(default)
     return str(v).strip().lower() in ("1","true","t","yes","y")
 
 def _get_float(name, default):
+    """
+    Retrieve a float environment variable.
+
+    Parameters
+    ----------
+    name : str
+        Name of the environment variable.
+    default : float
+        Default value if variable is not set or invalid.
+
+    Returns
+    -------
+    float
+        Float value of the environment variable.
+    """
     v = _get_env(name, None)
     if v is None:
         return float(default)
@@ -25,12 +72,34 @@ def _get_float(name, default):
 
 def make_dataset(file_list, class_names, labels=None, img_size=(224, 224), batch_size=32, shuffle=True):
     """
-    Flagi środowiskowe:
-      - USE_AUG (domyślnie 1)
-      - USE_MIXUP (domyślnie 1)
-      - MIXUP_PROB (domyślnie 0.2)
-      - MIXUP_MIN_LAM (domyślnie 0.3)
-      - MIXUP_MAX_LAM (domyślnie 0.7)
+    Create a TensorFlow dataset from image paths with optional augmentations and MixUp.
+
+    Supported environment flags:
+        - USE_AUG (default 1)
+        - USE_MIXUP (default 1)
+        - MIXUP_PROB (default 0.2)
+        - MIXUP_MIN_LAM (default 0.3)
+        - MIXUP_MAX_LAM (default 0.7)
+
+    Parameters
+    ----------
+    file_list : list of str
+        Paths to image files.
+    class_names : list of str
+        List of class labels.
+    labels : list or array, optional
+        Precomputed integer labels. If None, labels are inferred from folder names.
+    img_size : tuple of int, default=(224,224)
+        Target image size.
+    batch_size : int, default=32
+        Batch size.
+    shuffle : bool, default=True
+        Whether to shuffle the dataset.
+
+    Returns
+    -------
+    tf.data.Dataset
+        A batched and prefetched dataset yielding (image, one-hot label) pairs.
     """
     num_classes = len(class_names)
 
@@ -105,12 +174,44 @@ def make_dataset(file_list, class_names, labels=None, img_size=(224, 224), batch
 
 
 def make_alpha(labels_np, num_classes):
+    """
+    Create class weighting vector (alpha) for Focal Loss or similar.
+
+    Parameters
+    ----------
+    labels_np : np.ndarray
+        Integer labels.
+    num_classes : int
+        Number of classes.
+
+    Returns
+    -------
+    tf.Tensor
+        Class weights normalized to sum 1.
+    """
     counts = np.bincount(labels_np, minlength=num_classes).astype(np.float32)
     inv = 1.0 / np.maximum(1.0, counts)
     alpha = inv / inv.sum()
     return tf.constant(alpha, dtype=tf.float32)
 
 def categorical_focal_loss(gamma=2.0, alpha=None, label_smoothing=0.05):
+    """
+    Focal Loss for multi-class classification with optional label smoothing.
+
+    Parameters
+    ----------
+    gamma : float, default=2.0
+        Focusing parameter for Focal Loss.
+    alpha : tf.Tensor or None
+        Class weighting vector [C] or None.
+    label_smoothing : float, default=0.05
+        Label smoothing factor.
+
+    Returns
+    -------
+    function
+        Loss function suitable for Keras `model.compile`.
+    """
     def loss(y_true, y_pred):
         if label_smoothing > 0.0:
             n = tf.cast(tf.shape(y_true)[-1], tf.float32)
@@ -123,9 +224,6 @@ def categorical_focal_loss(gamma=2.0, alpha=None, label_smoothing=0.05):
         fl = weight * ce
         return tf.reduce_sum(fl, axis=-1)
     return loss
-
-
-from sklearn.metrics import f1_score
 
 class MacroF1Checkpoint(tf.keras.callbacks.Callback):
     def __init__(self, val_ds, path):

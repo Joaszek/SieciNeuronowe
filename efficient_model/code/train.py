@@ -25,6 +25,22 @@ log.info("Booting training script...")
 
 
 def compute_class_weights_from_labels(y, n_classes):
+    """
+    Compute class weights for imbalanced classification tasks.
+
+    Parameters
+    ----------
+    y : list or array-like
+        List of integer labels for all samples in the dataset.
+    n_classes : int
+        Number of classes.
+
+    Returns
+    -------
+    dict
+        Dictionary mapping class index to its weight.
+        Weight formula: total_samples / (n_classes * class_count)
+    """
     counts = defaultdict(int)
     for yi in y:
         counts[int(yi)] += 1
@@ -42,14 +58,44 @@ def compute_class_weights_from_labels(y, n_classes):
 
 
 def evaluate_and_save_results(model, val_ds, class_names, fold, output_path):
-    # 1) Predykcje i etykiety
+    """
+    Evaluate a trained model on a validation dataset and save detailed results.
+
+    Parameters
+    ----------
+    model : tensorflow.keras.Model
+        Trained Keras model to evaluate.
+    val_ds : tf.data.Dataset
+        Validation dataset yielding (image, label) pairs.
+    class_names : list of str
+        List of class labels.
+    fold : int
+        Fold number (used for filenames and logging).
+    output_path : str
+        Directory path to save results (JSON, text report, and confusion matrix).
+
+    Returns
+    -------
+    dict
+        Dictionary containing fold metrics and confusion matrix:
+        {
+            "fold": fold number,
+            "accuracy_macro": float,
+            "precision_macro": float,
+            "recall_macro": float,
+            "f1_macro": float,
+            "confusion_matrix": list of lists,
+            "class_names": list of class names
+        }
+    """
+    # 1) predykcje i etykiety
     y_true, y_pred = [], []
     for x_batch, y_batch in val_ds:
         preds = model.predict(x_batch, verbose=0)
         y_true.extend(np.argmax(y_batch.numpy(), axis=1))
         y_pred.extend(np.argmax(preds, axis=1))
 
-    # 2) Raport (słownik do wyjęcia metryk)
+    # 2) raport
     rep_dict = classification_report(
         y_true, y_pred, target_names=class_names, digits=4, output_dict=True
     )
@@ -57,24 +103,23 @@ def evaluate_and_save_results(model, val_ds, class_names, fold, output_path):
         y_true, y_pred, target_names=class_names, digits=4, output_dict=False
     )
 
-    # 3) Macierz pomyłek (list -> JSON-friendly)
+    # 3) macierz pomylek
     cm = confusion_matrix(y_true, y_pred)
     cm_list = cm.tolist()
 
-    # 4) Wybór metryk do raportu folda (tu: macro avg – możesz zmienić na weighted avg)
+    # 4) metryki
     acc  = float(rep_dict.get("accuracy", 0.0))
     prec = float(rep_dict["macro avg"]["precision"])
     rec  = float(rep_dict["macro avg"]["recall"])
     f1   = float(rep_dict["macro avg"]["f1-score"])
 
-    # 5) Czytelny wydruk jak na zrzutach
     print(f"\nFold {fold} Confusion Matrix:\n{cm_list}")
     print(f"Fold {fold} Summary: acc={acc:.4f}, prec={prec:.4f}, rec={rec:.4f}, f1={f1:.4f}\n")
 
     log.info(f"\nFold {fold} Confusion Matrix:\n{cm_list}")
     log.info(f"Fold {fold} Summary: acc={acc:.4f}, prec={prec:.4f}, rec={rec:.4f}, f1={f1:.4f}\n")
 
-    # 6) Zapis tekstowego raportu i obrazka
+    # 6) zapis tekstowego raportu i obrazka
     with open(os.path.join(output_path, f"fold{fold}_report.txt"), "w") as f:
         f.write(rep_text)
 
@@ -87,7 +132,7 @@ def evaluate_and_save_results(model, val_ds, class_names, fold, output_path):
     plt.savefig(os.path.join(output_path, f"fold{fold}_confusion_matrix.png"))
     plt.close()
 
-    # 7) Zapis JSON z metrykami + CM
+    # 7) zapis JSON z metrykami + CM
     fold_json = {
         "fold": fold,
         "accuracy_macro": acc,          # acc ogólne (Keras/CLF report)
@@ -128,20 +173,17 @@ k_folds    = int(os.environ.get('K_FOLDS', 1))
 seed       = 42
 random.seed(seed)
 
-# ------- Build the full pool of samples (train + val) -------
 paths_tr, y_tr, classes_tr = scan_dir_return_paths_labels(train_path)
 paths_va, y_va, classes_va = scan_dir_return_paths_labels(val_path)
 
-# Sanity: prefer non-empty class mapping; assume both dirs share the same set
 class_names = classes_tr if classes_tr else classes_va
 all_paths = paths_tr + paths_va
 all_labels = y_tr + y_va
 
 if k_folds <= 1 or len(all_paths) == 0:
-    # fallback to your original single-split training
     print("K_FOLDS<=1 or no data detected: running standard train/val.")
     log.info("K_FOLDS<=1 or no data detected: running standard train/val.")
-    from collections import Counter
+
     def compute_class_weights(root):
         class_names_local = sorted([d for d in os.listdir(root) if os.path.isdir(os.path.join(root, d))])
         counts = {}
@@ -278,7 +320,7 @@ for fold in range(k_folds):
 
     fold_stats = evaluate_and_save_results(model, val_ds, class_names, fold+1, output_path)
 
-    # Dołóż do metryk także najlepsze val_acc z treningu
+    # Dołóż do metryk najlepsze val_acc z treningu
     final_metrics = {
         "fold": fold + 1,
         "best_val_accuracy": max(hist1.history.get('val_accuracy', [0]) +

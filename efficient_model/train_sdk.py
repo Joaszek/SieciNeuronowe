@@ -2,6 +2,14 @@ from sagemaker.tensorflow import TensorFlow
 import sagemaker
 import boto3
 import sys
+
+"""
+Module for configuring and launching a SageMaker TensorFlow training job.
+
+This script sets up an AWS SageMaker TensorFlow Estimator with specified
+infrastructure, training entry point, hyperparameters, and input/output paths.
+"""
+
 sys.stdout.reconfigure(line_buffering=True)
 
 session = boto3.Session(region_name='eu-central-1')

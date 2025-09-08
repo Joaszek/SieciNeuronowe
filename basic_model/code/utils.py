@@ -1,17 +1,28 @@
 import tensorflow as tf
 import os
 
-#def load_data(data_dir, img_size=(224, 224), batch_size=32):
-#    return tf.keras.utils.image_dataset_from_directory(
-#        data_dir,
-#        seed=42,
-#        image_size=img_size,
-#        batch_size=batch_size,
-#        label_mode='categorical'
-#    )
-
 def load_data(file_list, class_names, img_size=(224, 224), batch_size=32):
-    """Tworzy dataset z listy plików"""
+    """
+    Creates a TensorFlow dataset from a list of image file paths.
+
+    Parameters
+    ----------
+    file_list : list of str
+        List of file paths to images.
+    class_names : list of str
+        List of class labels corresponding to the dataset.
+    img_size : tuple of int, default=(224, 224)
+        Target size (height, width) for resizing images.
+    batch_size : int, default=32
+        Number of samples per batch.
+
+    Returns
+    -------
+    tf.data.Dataset
+        A dataset yielding `(image, label)` pairs where:
+        - `image` is a float32 tensor normalized to [0, 1] with shape `(img_size[0], img_size[1], 3)`
+        - `label` is a one-hot encoded vector of length `num_classes`
+    """
     num_classes = len(class_names)
     ds = tf.data.Dataset.from_tensor_slices(file_list)
 

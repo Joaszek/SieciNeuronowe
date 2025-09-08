@@ -4,10 +4,41 @@ import os
 import tensorflow as tf
 
 def _get_env(name, default=None):
+    """
+    Retrieves an environment variable, checking both SageMaker-style ("SM_HP_*")
+    and plain environment variables.
+
+    Parameters
+    ----------
+    name : str
+        Name of the environment variable (without the "SM_HP_" prefix).
+    default : any, optional
+        Default value to return if the variable is not found.
+
+    Returns
+    -------
+    str or any
+        The environment variable value if found, otherwise the default.
+    """
     v = os.environ.get(f"SM_HP_{name}", os.environ.get(name, None))
     return default if v is None else v
 
 def _get_float(name, default):
+    """
+    Retrieves an environment variable as a float.
+
+    Parameters
+    ----------
+    name : str
+        Name of the environment variable (without the "SM_HP_" prefix).
+    default : float
+        Default value to return if the variable is not found or conversion fails.
+
+    Returns
+    -------
+    float
+        The environment variable value converted to float, or the default.
+    """
     v = _get_env(name, None)
     if v is None:
         return float(default)
@@ -17,6 +48,28 @@ def _get_float(name, default):
         return float(default)
 
 def create_model(num_classes=7, input_shape=(224, 224, 3)):
+    """
+    Builds an image classification model based on EfficientNetB0 with
+    custom classification head and residual MLP bottleneck.
+
+    The architecture includes:
+    - A frozen EfficientNetB0 backbone (transfer learning).
+    - Fully connected blocks with dropout, batch normalization, and swish activation.
+    - A residual bottleneck block with skip connection.
+    - Final dense softmax layer for multi-class classification.
+
+    Parameters
+    ----------
+    num_classes : int, default=7
+        Number of output classes for classification.
+    input_shape : tuple of int, default=(224, 224, 3)
+        Shape of input images (height, width, channels).
+
+    Returns
+    -------
+    tensorflow.keras.Model
+        A compiled Keras Model instance ready for training.
+    """
     l2w = _get_float("HEAD_L2", 1e-4)
     d1  = _get_float("HEAD_DROPOUT1", 0.2)
     d2  = _get_float("HEAD_DROPOUT2", 0.3)

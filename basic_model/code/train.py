@@ -9,6 +9,31 @@ from class_weights import class_weight
 
 
 def train_kfold(all_files, class_names, num_classes=7, epochs=10, batch_size=32, num_folds=5):
+    """
+    Trains a classification model using stratified K-fold cross-validation.
+
+    Parameters
+    ----------
+    all_files : list of str
+        List of file paths to all training images.
+    class_names : list of str
+        List of class labels corresponding to the dataset.
+    num_classes : int, default=7
+        Number of unique classes in the dataset.
+    epochs : int, default=10
+        Number of epochs to train each fold.
+    batch_size : int, default=32
+        Batch size for training and validation datasets.
+    num_folds : int, default=5
+        Number of folds for stratified cross-validation.
+
+    Returns
+    -------
+    None
+        Saves the best-performing model to disk and prints performance
+        metrics (accuracy, precision, recall, F1-score) for each fold
+        as well as their averages.
+    """
     best_acc = 0.0
     best_model_path = '/opt/ml/model/best_model'
     fold_results = []
