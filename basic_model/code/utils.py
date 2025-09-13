@@ -1,42 +1,99 @@
-import tensorflow as tf
 import os
-
-def load_data(file_list, class_names, img_size=(224, 224), batch_size=32):
+import math
+import random
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras import layers, models
+from collections import defaultdict, Counter
+from sklearn.metrics import f1_score
+# ===== CLASS WEIGHTS =====
+def compute_class_weights(y, num_classes):
     """
-    Creates a TensorFlow dataset from a list of image file paths.
+    Wyznacza wagi klas do trenowania (odwrotnie proporcjonalne do liczności klas).
+    """
+    counts = np.bincount(y, minlength=num_classes)
+    total = counts.sum()
+    weights = {i: total / (num_classes * max(1, c)) for i, c in enumerate(counts)}
+    return weights
 
-    Parameters
-    ----------
-    file_list : list of str
-        List of file paths to images.
-    class_names : list of str
-        List of class labels corresponding to the dataset.
-    img_size : tuple of int, default=(224, 224)
-        Target size (height, width) for resizing images.
-    batch_size : int, default=32
-        Number of samples per batch.
 
-    Returns
-    -------
-    tf.data.Dataset
-        A dataset yielding `(image, label)` pairs where:
-        - `image` is a float32 tensor normalized to [0, 1] with shape `(img_size[0], img_size[1], 3)`
-        - `label` is a one-hot encoded vector of length `num_classes`
+# ===== UPSAMPLING =====
+def upsample_to_balance(files, labels_np, class_names, target_multiple=1.0):
+    """
+    Balansowanie klas przez powielanie obrazów do poziomu ~ target_multiple * największa klasa.
+    """
+    counts = defaultdict(int)
+    for lab in labels_np:
+        counts[int(lab)] += 1
+    max_count = max(counts.values())
+    target = int(max_count * target_multiple)
+
+    by_class = defaultdict(list)
+    for f, lab in zip(files, labels_np):
+        by_class[int(lab)].append(f)
+
+    balanced_files, balanced_labels = [], []
+    for cls_idx, lst in by_class.items():
+        if len(lst) == 0:
+            continue
+        mul = math.ceil(target / len(lst))
+        expanded = (lst * mul)[:target]
+        random.shuffle(expanded)
+        balanced_files.extend(expanded)
+        balanced_labels.extend([cls_idx] * len(expanded))
+
+    mix = list(zip(balanced_files, balanced_labels))
+    random.shuffle(mix)
+    balanced_files, balanced_labels = zip(*mix)
+    return list(balanced_files), np.array(balanced_labels, dtype=np.int32)
+
+
+
+# ===== DATASET (dla prostego CNN – normalizacja do [0,1]) =====
+def make_dataset(file_list, class_names, labels=None, img_size=(224,224), batch_size=32, shuffle=True):
+    """
+    Dataset do trenowania prostego CNN (normalizacja [0,1]).
     """
     num_classes = len(class_names)
-    ds = tf.data.Dataset.from_tensor_slices(file_list)
+    if labels is None:
+        labels = np.array([class_names.index(os.path.basename(os.path.dirname(f))) for f in file_list], dtype=np.int32)
+    else:
+        labels = np.array(labels, dtype=np.int32)
 
-    def process_path(path):
+    ds = tf.data.Dataset.from_tensor_slices((file_list, labels))
+    if shuffle:
+        ds = ds.shuffle(buffer_size=len(file_list))
+
+    def process_path(path, label):
         img = tf.io.read_file(path)
         img = tf.image.decode_jpeg(img, channels=3)
         img = tf.image.resize(img, img_size)
         img = img / 255.0
-        # Label jako indeks w class_names
-        label_str = tf.strings.split(path, os.sep)[-2]
-        label_idx = tf.cast(tf.where(tf.equal(class_names, label_str))[0][0], tf.int32)
-        label_one_hot = tf.one_hot(label_idx, num_classes)
-        return img, label_one_hot
+        return img, tf.one_hot(label, depth=num_classes)
 
-    ds = ds.map(process_path)
+    ds = ds.map(process_path, num_parallel_calls=tf.data.AUTOTUNE)
     ds = ds.batch(batch_size).prefetch(tf.data.AUTOTUNE)
     return ds
+
+
+# ===== CALLBACK =====
+class MacroF1Checkpoint(tf.keras.callbacks.Callback):
+    """
+    Callback zapisujący model o najlepszym Macro-F1.
+    """
+    def __init__(self, val_ds, path):
+        super().__init__()
+        self.val_ds = val_ds
+        self.best = -1.0
+        self.path = path
+
+    def on_epoch_end(self, epoch, logs=None):
+        preds = self.model.predict(self.val_ds, verbose=0)
+        y_true = np.concatenate([np.argmax(y, axis=1) for _, y in self.val_ds], axis=0)
+        y_pred = np.argmax(preds, axis=1)
+        f1 = f1_score(y_true, y_pred, average="macro", zero_division=0)
+        print(f"\n[MacroF1Checkpoint] macro F1: {f1:.4f} (best {self.best:.4f})")
+        if f1 > self.best:
+            self.best = f1
+            self.model.save(self.path)
+            print(f"[MacroF1Checkpoint] Saved best to {self.path}")
